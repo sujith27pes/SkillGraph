@@ -1,8 +1,6 @@
-import os, tempfile
-os.environ["DATABASE_URL"] = f"sqlite:///{tempfile.mkdtemp()}/t.db"
 from fastapi.testclient import TestClient
 from app.main import app
-c = TestClient(app)
+from conftest import client as c
 
 def test_flow():
     py = c.post("/skills", json={"name": "Python"}).json()["id"]
@@ -66,4 +64,4 @@ def test_solution_features():
     assert c.get("/reports/succession.csv").status_code == 200 and c.get("/reports/skill-matrix.csv").status_code == 200
     risks = c.get("/analytics/continuity-risks").json()
     assert any(x["skill"] == "Sk1" for x in risks["skills_at_risk"])
-    assert c.post(f"/employees/{ids['s1']}/extract-skills", json={"text": "x"}).status_code == 503  # needs ANTHROPIC_API_KEY
+    assert c.post(f"/employees/{ids['s1']}/extract-skills", json={"text": "x"}).status_code == 503  # needs NVIDIA_API_KEY

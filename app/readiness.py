@@ -28,14 +28,15 @@ def _write(session, sel):
     session.execute(st)
 
 
-def recompute_employees(session, ids, batch=1000):
+def recompute_employees(session, ids, batch=1000, commit=True):
     """Call after ratings change. Recomputes every role for these employees."""
     ids = list(ids)
     for i in range(0, len(ids), batch):
         sub, started = ids[i:i + batch], datetime.utcnow()
         _write(session, _select(started, Employee.id.in_(sub)))
         session.execute(delete(Readiness).where(Readiness.employee_id.in_(sub), Readiness.updated_at < started))
-        session.commit()
+        if commit:
+            session.commit()
 
 
 def recompute_role(role_id, chunk=50_000):
@@ -50,3 +51,11 @@ def recompute_role(role_id, chunk=50_000):
     with SessionLocal() as s:
         s.execute(delete(Readiness).where(Readiness.role_id == role_id, Readiness.updated_at < started))
         s.commit()
+
+
+def recompute_role_in_session(session, role_id):
+    """Refresh a role in its caller's transaction so requirements and scores agree."""
+    started = datetime.utcnow()
+    session.flush()
+    _write(session, _select(started, true(), role_id))
+    session.execute(delete(Readiness).where(Readiness.role_id == role_id, Readiness.updated_at < started))

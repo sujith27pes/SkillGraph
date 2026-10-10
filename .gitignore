@@ -3,9 +3,12 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .venv/
 venv/
+.mypy_cache/
+.ruff_cache/
 
 # Local configuration and data
 .env
@@ -14,9 +17,31 @@ venv/
 *.db
 *.sqlite
 *.sqlite3
+backups/
+exports/
+outputs/
+*.log
+logs/
+*.zip
+*.tar
+*.gz
+*.7z
+*.pem
+*.key
 
 # Editor and OS files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
+# SQLite WAL sidecars
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+*.db-journal
+*.sqlite-journal
+*.sqlite3-journal

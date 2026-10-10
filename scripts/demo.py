@@ -1,7 +1,8 @@
 """Populate a realistic demo workspace:  python -m scripts.demo   (run once on an empty database)"""
 import random
+from collections import Counter
 from sqlalchemy import func, insert, select
-from app.db import Base, SessionLocal, engine, sync_postgres_sequences
+from app.db import Base, SessionLocal, engine
 from app.models import (Employee, LearningResource, Project, ProjectSkill, Rating, Role, RoleSkillReq, Skill, SkillDemand)
 from app.readiness import recompute_role
 
@@ -46,21 +47,22 @@ with SessionLocal() as s:
         for k, v in ROLES[target][1].items():
             have[k] = clamp(v + (random.randint(-1, 0) if hp else random.randint(-2, 1)))
         for k in random.sample(list(SKILLS), 3): have.setdefault(k, random.randint(1, 3))
-        ratings += [{"employee_id": i, "skill_id": sid[k], "level": v, "confidence": round(random.uniform(.5, .95), 2), "source": random.choice(["hris_inference", "manual", "ai_assessment"])} for k, v in have.items() if v > 0]
+        ratings += [{"employee_id": i, "skill_id": sid[k], "level": v, "confidence": round(random.uniform(.5, .95), 2), "source": random.choice(["demo_inference", "demo_manual", "demo_assessment"])} for k, v in have.items() if v > 0]
     s.execute(insert(Employee), emps); s.execute(insert(Rating), ratings)
     courses = [(2, "Foundations of", 12), (3, "Applied", 24), (4, "Advanced", 32), (5, "Expert practice in", 40)]
     res = [{"skill_id": sid[n], "title": f"{t} {n}", "provider": random.choice(["Coursera", "Udemy", "Internal Academy", "LinkedIn Learning"]),
             "level": l, "hours": h, "url": "https://example.com/learn"} for n in SKILLS for l, t, h in courses]
     s.execute(insert(LearningResource), res)
-    s.execute(insert(SkillDemand), [{"skill_id": sid[n], "target_headcount": random.randint(8, 40)} for n in SKILLS])
-    projs = {"Customer 360 Platform": {"Data Engineering": 4, "SQL": 4, "Cloud Architecture": 3, "Python": 3},
+    supply = Counter(r["skill_id"] for r in ratings if r["level"] >= 3)
+    s.execute(insert(SkillDemand), [{"skill_id": sid[n], "target_headcount": supply[sid[n]] + (20 if n in ("Python", "Machine Learning", "Cybersecurity", "Cloud Architecture") else -5)} for n in SKILLS])
+    projs = {"Responsible AI Launch": {"Machine Learning": 4, "Cybersecurity": 4, "Cloud Architecture": 4, "Data Engineering": 4, "Product Strategy": 4, "Leadership": 4, "Communication": 4},
+             "Customer 360 Platform": {"Data Engineering": 4, "SQL": 4, "Cloud Architecture": 3, "Python": 3},
              "Fraud Detection Model": {"Machine Learning": 4, "Python": 4, "Data Analysis": 3},
              "Zero-Trust Rollout": {"Cybersecurity": 4, "DevOps": 3, "Cloud Architecture": 3}}
     for i, (n, q) in enumerate(projs.items(), 1):
         s.execute(insert(Project), [{"id": i, "name": n, "description": "Demo initiative"}])
         s.execute(insert(ProjectSkill), [{"project_id": i, "skill_id": sid[k], "level": v, "weight": 1.0} for k, v in q.items()])
     s.commit()
-    sync_postgres_sequences(s, [Skill, Role, Employee, Project])
     s.commit()
 for r in rid.values(): recompute_role(r)
-print("Demo ready: 420 employees, 16 skills, 6 roles (2 critical), 3 projects, 64 courses")
+print("Demo ready: 420 employees, 16 skills, 6 roles (2 critical), 4 projects, 64 courses")

@@ -1,0 +1,2 @@
+'use strict';
+const SGAuth={user:null,csrf:'',async load(){const r=await fetch('/auth/me');if(r.status===401){location.replace('/login.html');throw Error('Sign in required')}if(!r.ok)throw Error('Could not load session');const data=await r.json();this.user=data.user;this.csrf=data.csrf_token;return data.user},async logout(){const r=await fetch('/auth/logout',{method:'POST',headers:{'X-CSRF-Token':this.csrf}});if(!r.ok&&r.status!==401)throw Error('Could not sign out');this.user=null;this.csrf='';location.replace('/login.html')}};
